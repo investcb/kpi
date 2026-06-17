@@ -1,0 +1,90 @@
+rules_version = '2';
+service cloud_firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- SCHEMA VALIDATION HELPERS ---
+    
+    // User profile checker
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'fullName', 'department', 'position', 'kpiGoal'])
+        && data.keys().size() == 5
+        && data.uid is string && data.uid.size() <= 128
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100
+        && data.department is string && data.department.size() >= 2 && data.department.size() <= 150
+        && data.position is string && data.position.size() >= 2 && data.position.size() <= 150
+        && data.kpiGoal is int && data.kpiGoal > 0 && data.kpiGoal <= 1000;
+    }
+
+    // Task checker
+    function isValidTask(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'date', 'status', 'kpiCategory', 'kpiScore', 'selfGradedScore', 'type', 'createdAt', 'updatedAt'])
+        && (data.keys().size() == 11 || (data.keys().size() == 12 && data.keys().hasAny(['description', 'evidence'])))
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.date is string && data.date.size() == 10 // YYYY-MM-DD
+        && data.status is string && (data.status == 'pending' || data.status == 'completed')
+        && data.type is string && (data.type == 'daily' || data.type == 'monthly' || data.type == 'future')
+        && data.kpiCategory is string && data.kpiCategory.size() <= 100
+        && data.kpiScore is number && data.kpiScore >= 0 && data.kpiScore <= 100
+        && data.selfGradedScore is number && data.selfGradedScore >= 0 && data.selfGradedScore <= data.kpiScore
+        // Optional description and evidence validation
+        && (!data.keys().hasAny(['description']) || (data.description is string && data.description.size() <= 1000))
+        && (!data.keys().hasAny(['evidence']) || (data.evidence is string && data.evidence.size() <= 500));
+    }
+
+    // --- CORES MATCH DEFINITIONS ---
+
+    // 1. Users Profile Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().uid == userId;
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().uid == userId && incoming().uid == existing().uid;
+    }
+
+    // 2. Tasks Subcollection Nested inside Users
+    match /users/{userId}/tasks/{taskId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) 
+                    && isValidId(taskId)
+                    && isValidTask(incoming()) 
+                    && incoming().id == taskId
+                    && incoming().userId == userId
+                    && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) 
+                    && isValidId(taskId)
+                    && isValidTask(incoming()) 
+                    && incoming().id == taskId
+                    && incoming().userId == userId
+                    && incoming().createdAt == existing().createdAt
+                    && incoming().updatedAt == request.time;
+      allow delete: if isOwner(userId);
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "users": {
+      "title": "UserProfile",
+      "description": "Information about the civil servant and their KPI configurations",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique user ID matching their firebase auth uid" },
+        "fullName": { "type": "string", "description": "Full name of the civil servant" },
+        "department": { "type": "string", "description": "Department, Office or Division" },
+        "position": { "type": "string", "description": "Official title or position" },
+        "kpiGoal": { "type": "integer", "description": "Monthly KPI score target" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Profile creation timestamp" }
+      },
+      "required": ["uid", "fullName", "department", "position", "kpiGoal"]
+    },
+    "tasks": {
+      "title": "Task",
+      "description": "A KPI task inputted by the civil servant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique Task ID" },
+        "userId": { "type": "string", "description": "Owner's User ID" },
+        "title": { "type": "string", "description": "The professional task name or description" },
+        "description": { "type": "string", "description": "More detailed notes or results" },
+        "date": { "type": "string", "format": "date", "description": "Date of task execution (YYYY-MM-DD)" },
+        "type": { "type": "string", "enum": ["daily", "monthly", "future"], "description": "Temporal categorization of the duty" },
+        "status": { "type": "string", "enum": ["pending", "completed"], "description": "Completion status of the task" },
+        "kpiCategory": { "type": "string", "description": "KPI group or standard division (e.g. chuyên môn, phong trào...)" },
+        "kpiScore": { "type": "number", "description": "Max scoring weight under current KPI guidance" },
+        "selfGradedScore": { "type": "number", "description": "The score self-awarded by the user" },
+        "evidence": { "type": "string", "description": "Official document number, URL, or proof (e.g., Quyết định số 12/BC-Sở)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Task creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Task update timestamp" }
+      },
+      "required": ["id", "userId", "title", "date", "status", "kpiCategory", "kpiScore", "selfGradedScore"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "users",
+      "description": "User profiles of civil servants"
+    },
+    "users/{userId}/tasks/{taskId}": {
+      "schema": "tasks",
+      "description": "List of daily, monthly, and future tasks of the civil servant"
+    }
+  }
+}

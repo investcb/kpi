@@ -1,0 +1,6 @@
+{
+  "name": "Quản lý Công việc & KPI Công chức",
+  "description": "Ứng dụng lập lịch, quản lý công việc và tự động tính điểm KPI, hỗ trợ trợ lý trí tuệ nhân tạo Gemini xuất tệp Excel nộp báo cáo hỏa tốc cho cán bộ.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
